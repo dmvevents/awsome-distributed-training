@@ -50,7 +50,7 @@
 # Stage 1: Clone NeMo RL source (platform-independent)
 # ============================================================
 # Global ARGs must be before any FROM to be visible across stages
-ARG BASE_IMAGE=nvcr.io/nvidia/cuda-dl-base:25.05-cuda12.9-devel-ubuntu24.04
+ARG BASE_IMAGE=nvcr.io/nvidia/cuda-dl-base:25.06-cuda12.9-devel-ubuntu24.04
 ARG NRL_GIT_REF=c40dba37789c64d03fcce72b152e5657ae6aacd7
 
 # Using scratch + ADD to clone the repo avoids needing git in the
@@ -157,7 +157,28 @@ TORCH_CUDA_ARCH_LIST="9.0" uv sync --locked --extra vllm --no-install-project
 uv sync --locked --extra automodel --no-install-project
 
 # peft — needed by eval script for LoRA adapter merging
-uv pip install peft
+uv pip install --python ${UV_PROJECT_ENVIRONMENT}/bin/python peft
+
+# CVE remediation: upgrade vulnerable Python packages to fixed versions
+uv pip install --python ${UV_PROJECT_ENVIRONMENT}/bin/python \
+    "h11>=0.16.0" \
+    "Pillow>=10.3.0" \
+    "certifi>=2024.7.4" \
+    "urllib3>=2.2.2" \
+    "requests>=2.32.0" \
+    "idna>=3.7" \
+    "jinja2>=3.1.5" \
+    "aiohttp>=3.13.3" \
+    "tornado>=6.4.2" \
+    "setuptools>=75.6.0" \
+    "cryptography>=46.0.5" \
+    "zipp>=3.19.1" \
+    "tqdm>=4.66.4" \
+    "werkzeug>=3.0.6" \
+    "mlflow>=3.8.1" \
+    "cbor2>=5.9.0" \
+    "pyasn1>=0.6.3" \
+    "xgrammar>=0.1.32"
 
 # Clean build caches (saves 4-6 GB)
 rm -rf /root/.cache/uv
@@ -333,5 +354,10 @@ ENV NCCL_SOCKET_IFNAME="^lo,docker,veth,eni"
 # H200/NVSwitch NCCL workarounds (required for P5en, harmless on P5)
 ENV NCCL_CUMEM_ENABLE=0
 ENV NCCL_NVLS_ENABLE=0
+
+# CVE remediation: upgrade system packages to latest security patches
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/nemo-rl

@@ -238,10 +238,14 @@ for venv in /opt/nemo_rl_venv /opt/ray_venvs/*/; do
         "mlflow>=3.8.1" \
         "cryptography>=46.0.5" \
         "pyasn1>=0.6.3" \
+        "wandb==0.26.0" \
+        "ray==2.52.0" \
         2>/dev/null || true
   fi
 done
 rm -rf /root/.cache/uv
+# Remove Go binary with CVE-2025-68121 (Nsight EFA metrics profiling plugin, not needed at runtime)
+rm -f /usr/local/cuda-*/NsightSystems-cli-*/target-linux-x64/plugins/efa_metrics/nic_sampler
 EOF
 
 # Container fingerprint for cache invalidation

@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 # CVE-2023-48022: Ray Dashboard access — disputed by Ray project (by design, not a bug)
 # https://github.com/ray-project/ray/issues/38720
 CVE-2023-48022

@@ -157,7 +157,7 @@ TORCH_CUDA_ARCH_LIST="9.0" uv sync --locked --extra vllm --no-install-project
 uv sync --locked --extra automodel --no-install-project
 
 # peft — needed by eval script for LoRA adapter merging
-uv pip install --python ${UV_PROJECT_ENVIRONMENT}/bin/python peft
+uv pip install --python ${UV_PROJECT_ENVIRONMENT}/bin/python "peft>=0.13,<1.0"
 
 # CVE remediation: upgrade vulnerable Python packages to fixed versions
 uv pip install --python ${UV_PROJECT_ENVIRONMENT}/bin/python \

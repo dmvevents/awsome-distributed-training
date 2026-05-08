@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 """Before/after evaluation for GRPO workshop demo.
 
 Uses the SAME prompt format as training (CoT with \\boxed{}) so the

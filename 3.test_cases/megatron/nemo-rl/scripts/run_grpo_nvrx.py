@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 """NVRx-enhanced GRPO training wrapper.
 
 This script wraps the standard run_grpo.py to add:

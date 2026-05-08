@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 # ============================================================
 # RayJob: Qwen2.5-1.5B GRPO + NVRx on g5.8xlarge (A10G)
 # ============================================================
@@ -7,7 +9,7 @@
 #   3. NVRx scripts on FSx: /shared/nvrx-demo/{patches,scripts}/
 #   4. NVIDIA + EFA device plugins on g5 nodes
 #
-# Deploy:   kubectl apply -f g5-rayjob-qwen-nvrx.yaml
+# Deploy:   kubectl apply -f kubernetes/rayjob.yaml
 # Monitor:  kubectl logs -f -l ray.io/node-type=head -c ray-head
 # Status:   kubectl get rayjob grpo-g5-qwen-nvrx
 # Clean:    kubectl delete rayjob grpo-g5-qwen-nvrx
@@ -59,7 +61,9 @@ spec:
               effect: "NoSchedule"
           containers:
             - name: ray-head
-              image: public.ecr.aws/v9l4g5s4/nemo-rl-full:main-efa-20260218
+              # Replace <your-account>/<your-alias> with your ECR path after building
+              # the Dockerfile in this directory (see README Section 0).
+              image: public.ecr.aws/<your-alias>/nemo-rl-workshop:latest
               imagePullPolicy: Always
               securityContext:
                 capabilities:
@@ -80,14 +84,19 @@ spec:
                 - name: GRPO_MAX_STEPS
                   value: "20"
                 # ── NCCL / EFA ──
-                # Pin to primary ENI (ens5) — g5 nodes have 2 ENIs (ens5+ens6);
-                # without pinning NCCL can bind on different interfaces per rank.
+                # Exclusion pattern per repo convention (see 1.architectures/efa-cheatsheet.md).
+                # hostNetwork: true means the container sees host interfaces — excluding
+                # lo/docker/veth is sufficient to pick the node's primary ENI on g5.
                 - name: NCCL_SOCKET_IFNAME
-                  value: "ens5"
+                  value: "^lo,docker,veth"
                 - name: NCCL_DEBUG
                   value: "WARN"
+                # Default 600s (10 min); override for longer runs via kubectl edit
+                # or a values.yaml overlay. Long timeouts mask real failures —
+                # 10 min is enough for NVRx (heartbeat ~30s) to surface hangs
+                # without blocking surviving ranks for hours on a dead peer.
                 - name: NCCL_TIMEOUT
-                  value: "7200"
+                  value: "600"
                 - name: NCCL_MAX_NCHANNELS
                   value: "1"
                 - name: NCCL_MIN_NCHANNELS
@@ -98,8 +107,9 @@ spec:
                   value: "0"
                 - name: NCCL_NVLS_ENABLE
                   value: "0"
+                # Matches NCCL_TIMEOUT above — letting NVRx drive recovery.
                 - name: TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC
-                  value: "7200"
+                  value: "600"
                 - name: FI_EFA_FORK_SAFE
                   value: "1"
                 - name: RDMAV_FORK_SAFE
@@ -196,7 +206,9 @@ spec:
                     topologyKey: kubernetes.io/hostname
             containers:
               - name: ray-worker
-                image: public.ecr.aws/v9l4g5s4/nemo-rl-full:main-efa-20260218
+                # Replace <your-account>/<your-alias> with your ECR path after building
+                # the Dockerfile in this directory (see README Section 0).
+                image: public.ecr.aws/<your-alias>/nemo-rl-workshop:latest
                 imagePullPolicy: Always
                 securityContext:
                   capabilities:

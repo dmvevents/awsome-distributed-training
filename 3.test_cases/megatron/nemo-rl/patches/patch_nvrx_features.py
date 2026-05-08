@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 """Runtime patches to enable NVRx features in NeMo RL container.
 
 Applied by the K8s manifest entrypoint BEFORE ft_launcher starts.
@@ -9,6 +11,23 @@ Features enabled:
   1. Async checkpoint: adds is_async to CheckpointingConfig TypedDict
   2. Straggler detection: wraps forward_backward with NVRx Detector in
      DTensorPolicyWorkerV2
+
+Design rationale (per PR #1010 review by @paragao):
+  We chose runtime source-file patching over (a) baking patches into the
+  Dockerfile or (b) forking NeMo RL because:
+    * The pinned NeMo RL commit (NRL_GIT_REF in the Dockerfile) is the only
+      thing guaranteed to be paired with these patches; moving them into the
+      image would make image rebuilds the only way to experiment with a new
+      NRL commit during the workshop.
+    * Two of the three features (is_async TypedDict field, straggler section
+      wrapping) are already being upstreamed; inlining them in a fork would
+      create long-lived fork drift.
+    * The patches are idempotent and fail loudly (each function returns False
+      and prints [NVRx patch] FAIL: ... when a string anchor is missing) so
+      a future NeMo RL revision that drifts from the anchors cannot silently
+      ship a broken container.
+  This file is intentionally scoped to the workshop — do not import runtime
+  patching as a pattern for production clusters.
 """
 
 import os
@@ -89,8 +108,12 @@ def patch_straggler_detection():
         return True
 
     # --- 1. Add import block after existing imports ---
+    # NOTE: `nullcontext` is used below when the straggler detector is unavailable
+    # or disabled — it MUST be imported here, otherwise the else-branch raises
+    # NameError the first time forward_backward runs. (PR #1010 review, @paragao)
     import_block = '''
 # NVRx straggler detection (runtime patch)
+from contextlib import nullcontext
 try:
     from nvidia_resiliency_ext.straggler import Detector as _NVRxStragglerDetector
     _NVRX_STRAGGLER_AVAILABLE = True

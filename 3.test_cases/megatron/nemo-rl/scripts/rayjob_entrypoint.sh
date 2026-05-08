@@ -1,14 +1,21 @@
 #!/bin/bash
-set -e
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+set -exuo pipefail
 
 echo "=== NeMo RL GRPO Training via RayJob ==="
 echo "Model: Qwen2.5-1.5B | GPUs: A10G | NVRx: enabled"
 echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-# Fix hostname for Gloo
+# Hostname resolution: the rayjob.yaml uses `hostNetwork: true`, so the container
+# shares the host's /etc/hosts (which already maps the node's hostname to its IP).
+# We removed the legacy `echo >> /etc/hosts` line that ran here — it would have
+# required either `privileged: true` or the `SYS_ADMIN` capability to succeed,
+# and it is redundant on K8s with hostNetwork. If you adapt this entrypoint to
+# run WITHOUT hostNetwork, pass `--node-ip-address=$MY_IP` to `ray start` or
+# export `RAY_ADDRESS` instead of writing to /etc/hosts.
 MY_IP=$(hostname -I | awk '{print $1}')
-echo "$MY_IP $(hostname)" >> /etc/hosts
-echo "Hostname fixed: $(hostname) -> $MY_IP"
+echo "Ray node IP: $MY_IP, hostname: $(hostname)"
 
 # Apply NVRx runtime patches
 if [ -f /shared/nvrx-demo/patches/patch_nvrx_features.py ]; then

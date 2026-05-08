@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 # ============================================================
 # Dataset Download Job — Pre-cache math dataset + model to FSx
 # ============================================================
@@ -50,7 +52,9 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: downloader
-          image: public.ecr.aws/v9l4g5s4/nemo-rl-full:main-efa-20260218
+          # Same image as the training RayJob (built from the Dockerfile in this dir).
+          # Replace <your-alias> with your ECR Public alias — see README Section 0.
+          image: public.ecr.aws/<your-alias>/nemo-rl-workshop:latest
           imagePullPolicy: Always
           command: ["/bin/bash", "-c"]
           args:

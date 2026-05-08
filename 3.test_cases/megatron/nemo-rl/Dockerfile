@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 # NeMo RL Workshop — Multi-arch (g5/g6e/p5) + EFA
 #
 # Minified Dockerfile for the resilient-training workshop.
@@ -20,11 +23,10 @@
 #   - dev/test/docs dependency groups
 #
 # Build (multi-arch, ~40 min on c5.4xlarge):
-#   docker build -f docker/Dockerfile.workshop -t nemo-rl-workshop .
+#   docker build -t nemo-rl-workshop .
 #
 # Build (single-arch, ~25 min — pick one for fast iteration):
-#   docker build -f docker/Dockerfile.workshop \
-#     --build-arg TORCH_CUDA_ARCH_LIST="8.6" -t nemo-rl-workshop:g5 .
+#   docker build --build-arg TORCH_CUDA_ARCH_LIST="8.6" -t nemo-rl-workshop:g5 .
 #
 # CUDA arch note:
 #   flash-attn and transformer-engine compile for all target archs.
@@ -36,6 +38,7 @@
 #   NRL_GIT_REF           NeMo RL commit/branch (default: pinned)
 #   MAX_JOBS              Limit parallel compilation (prevent OOM)
 #   OFI_NCCL_VERSION      aws-ofi-nccl version (default: v1.18.0)
+#   EFA_INSTALLER_VERSION AWS EFA installer version (default: 1.47.0)
 
 # ============================================================
 # Stage 1: Clone NeMo RL source
@@ -178,9 +181,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libevent-core-2.1-7t64 libevent-pthreads-2.1-7t64 libevent-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Latest EFA installer — minimal mode (libfabric + rdma-core, no OpenMPI)
+# EFA installer — pinned to a specific version per repo convention (CI requires >= 1.47.0)
+# Minimal mode: libfabric + rdma-core only, no OpenMPI.
+ARG EFA_INSTALLER_VERSION=1.47.0
 RUN cd /tmp && \
-    curl -sL https://efa-installer.amazonaws.com/aws-efa-installer-latest.tar.gz \
+    curl -sL https://efa-installer.amazonaws.com/aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz \
         | tar xz && \
     cd aws-efa-installer && \
     ./efa_installer.sh -y --minimal --skip-kmod --skip-limit-conf --no-verify && \
